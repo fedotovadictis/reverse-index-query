@@ -1,8 +1,10 @@
 package generator
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"project_cat_reverse/internal/event"
 	"time"
 )
@@ -42,5 +44,31 @@ func GenerateEvent(id uint64) event.Event {
 		UserID:          userID,
 		Timestamp:       timestamp,
 	}
+}
+func GenerateToFile(count int, fileName string) error {
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	for i := 1; i <= count; i++ {
 
+		evt := GenerateEvent(uint64(i))
+
+		data, err := json.Marshal(evt)
+		if err != nil {
+			return err
+		}
+
+		_, err = file.Write(data)
+		if err != nil {
+			return err
+		}
+
+		_, err = file.Write([]byte("\n"))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -2,26 +2,30 @@ package main
 
 import (
 	"fmt"
-	"project_cat_reverse/internal/generator"
+	"project_cat_reverse/internal/index"
 	"project_cat_reverse/internal/reader"
 )
 
 func main() {
-	err := generator.GenerateToFile(5, "events.jsonl")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	/*
+		err := generator.GenerateToFile(5, "events.jsonl")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	*/
+
 	events, err := reader.ReadEvents("events.jsonl")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(len(events))
-	fmt.Println(len(events))
+	idx := index.NewIndex()
 
-	if len(events) > 0 {
-		fmt.Println(events[0])
+	for _, evt := range events {
+		idx.AddDepartment(evt)
 	}
+
+	fmt.Println(idx.Fields)
 }

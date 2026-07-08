@@ -28,18 +28,8 @@ func main() {
 
 		fmt.Println(idx.Fields)
 	*/
-	idx := index.NewIndex()
+	left := []uint64{1, 2, 3}
+	right := []uint64{1, 2, 3}
 
-	idx.AddField("department", "sales", 10)
-	idx.AddField("department", "sales", 3)
-	idx.AddField("department", "sales", 7)
-	idx.AddField("department", "sales", 1)
-
-	fmt.Println("До сортировки:")
-	fmt.Println(idx.Fields)
-
-	idx.Sort()
-
-	fmt.Println("После сортировки:")
-	fmt.Println(idx.Fields)
+	fmt.Println(index.Intersect(left, right))
 }

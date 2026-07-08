@@ -57,3 +57,34 @@ func (idx *Index) Sort() {
 		}
 	}
 }
+
+func (idx *Index) Find(field string, value string) []uint64 {
+	fieldMap, ok := idx.Fields[field]
+	if !ok {
+		return []uint64{}
+	}
+
+	ids, ok := fieldMap[value]
+	if !ok {
+		return []uint64{}
+	}
+	return ids
+}
+
+func Intersect(left []uint64, right []uint64) []uint64 {
+	var result []uint64
+	i := 0
+	j := 0
+	for i < len(left) && j < len(right) {
+		if left[i] == right[j] {
+			result = append(result, left[i])
+			i++
+			j++
+		} else if left[i] < right[j] {
+			i++
+		} else {
+			j++
+		}
+	}
+	return result
+}

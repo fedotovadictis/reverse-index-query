@@ -88,3 +88,42 @@ func Intersect(left []uint64, right []uint64) []uint64 {
 	}
 	return result
 }
+func (idx *Index) And(
+	leftField string,
+	leftValue string,
+	rightField string,
+	rightValue string,
+) []uint64 {
+	leftIDs := idx.Find(leftField, leftValue)
+	rightIDs := idx.Find(rightField, rightValue)
+	return Intersect(leftIDs, rightIDs)
+}
+
+func Union(left []uint64, right []uint64) []uint64 {
+	var result []uint64
+	i := 0
+	j := 0
+	for i < len(left) && j < len(right) {
+		if left[i] == right[j] {
+			result = append(result, left[i])
+			i++
+			j++
+		} else if left[i] < right[j] {
+			result = append(result, left[i])
+			i++
+		} else {
+			result = append(result, right[j])
+			j++
+		}
+	}
+	for i < len(left) {
+		result = append(result, left[i])
+		i++
+	}
+
+	for j < len(right) {
+		result = append(result, right[j])
+		j++
+	}
+	return result
+}

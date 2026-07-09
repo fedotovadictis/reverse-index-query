@@ -6,30 +6,24 @@ import (
 )
 
 func main() {
-	/*
-		err := generator.GenerateToFile(5, "events.jsonl")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	*/
-	/*
-		events, err := reader.ReadEvents("events.jsonl")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	//объединение
+	/*left := []uint64{1, 3, 5}
+	right := []uint64{3, 4, 6}
+	fmt.Println(index.Union(left, right)) */ //result [1 3 4 5 6]
 
-		idx := index.NewIndex()
+	//нет общих эл
+	/* left := []uint64{1, 2, 3}
+	right := []uint64{4, 5, 6}
+	fmt.Println(index.Union(left, right))*/ // [1 2 3 4 5 6]
 
-		for _, evt := range events {
-			idx.AddDepartment(evt)
-		}
-
-		fmt.Println(idx.Fields)
-	*/
-	left := []uint64{1, 2, 3}
+	//плное совпадение
+	/* left := []uint64{1, 2, 3}
 	right := []uint64{1, 2, 3}
+	fmt.Println(index.Union(left, right)) */ //[1 2 3]
 
-	fmt.Println(index.Intersect(left, right))
+	//один список пустой
+	left := []uint64{}
+	right := []uint64{1, 2, 3}
+	fmt.Println(index.Union(left, right)) //[1 2 3]
+
 }

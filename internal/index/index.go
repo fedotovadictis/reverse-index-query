@@ -99,7 +99,7 @@ func (idx *Index) And(
 	return Intersect(leftIDs, rightIDs)
 }
 
-func Union(left []uint64, right []uint64) []uint64 {
+func Union(left []uint64, right []uint64) []uint64 { // Union merges two sorted ID lists without duplicates.
 	var result []uint64
 	i := 0
 	j := 0
@@ -126,4 +126,14 @@ func Union(left []uint64, right []uint64) []uint64 {
 		j++
 	}
 	return result
+}
+func (idx *Index) Or(
+	leftField string,
+	leftValue string,
+	rightField string,
+	rightValue string,
+) []uint64 {
+	leftIDs := idx.Find(leftField, leftValue)
+	rightIDs := idx.Find(rightField, rightValue)
+	return Union(leftIDs, rightIDs)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"project_cat_reverse/internal/index"
 	"project_cat_reverse/internal/query"
 	"project_cat_reverse/internal/reader"
+	"project_cat_reverse/internal/result"
+	"project_cat_reverse/internal/scan"
 )
 
 func main() {
@@ -28,7 +31,7 @@ func run(args []string) error {
 	switch args[0] {
 
 	case "generate":
-		fmt.Println("run")
+		fmt.Println("generate")
 
 	case "run":
 		runCmd := flag.NewFlagSet("run", flag.ExitOnError)
@@ -70,9 +73,6 @@ func run(args []string) error {
 		if *out == "" {
 			return errors.New("run: --out is required")
 		}
-		if *method == "scan" {
-			return errors.New("run: scan method is not implemented yet")
-		}
 
 		eventsData, err := reader.ReadEvents(*events)
 		if err != nil {
@@ -80,26 +80,51 @@ func run(args []string) error {
 		}
 
 		idx := index.NewIndex()
-		for _, evt := range eventsData {
-			idx.AddEvent(evt)
-		}
 
 		q, err := query.ReadQuery(*queryFile)
 		if err != nil {
 			return err
 		}
 
-		ids, err := idx.Execute(&q)
+		var ids []uint64
+
+		if *method == "scan" {
+			ids, err = scan.Execute(eventsData, &q)
+		} else {
+			ids, err = idx.Execute(&q)
+			idx.Build(eventsData)
+			idx.Sort()
+
+			ids, err = idx.Execute(&q)
+		}
+
 		if err != nil {
 			return err
 		}
-		fmt.Println(ids)
+
+		res := result.Result{
+			Method:       *method,
+			MatchedCount: len(ids),
+			MatchedIDs:   ids,
+			Truncated:    false,
+			DurationMS:   0,
+		}
+
+		data, err := json.MarshalIndent(res, "", "  ")
+		if err != nil {
+			return err
+		}
+
+		if err := os.WriteFile(*out, data, 0644); err != nil {
+			return err
+		}
 		return nil
 
 	case "compare":
-		fmt.Println("run")
+		fmt.Println("compare")
 
 	default:
+		return fmt.Errorf("unknown command: %s", args[0])
 
 	}
 	return nil

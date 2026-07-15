@@ -11,6 +11,8 @@ import (
 	"project_cat_reverse/internal/reader"
 	"project_cat_reverse/internal/result"
 	"project_cat_reverse/internal/scan"
+	"slices"
+	"time"
 )
 
 func main() {
@@ -87,15 +89,23 @@ func run(args []string) error {
 		}
 
 		var ids []uint64
+		var durationMS float64
 
 		if *method == "scan" {
+			start := time.Now()
 			ids, err = scan.Execute(eventsData, &q)
+			durationMS = float64(time.Since(start)) / float64(time.Millisecond)
+
 		} else {
-			ids, err = idx.Execute(&q)
 			idx.Build(eventsData)
 			idx.Sort()
 
+			start := time.Now()
+
 			ids, err = idx.Execute(&q)
+
+			durationMS = float64(time.Since(start)) / float64(time.Millisecond)
+
 		}
 
 		if err != nil {
@@ -107,7 +117,7 @@ func run(args []string) error {
 			MatchedCount: len(ids),
 			MatchedIDs:   ids,
 			Truncated:    false,
-			DurationMS:   0,
+			DurationMS:   durationMS,
 		}
 
 		data, err := json.MarshalIndent(res, "", "  ")
@@ -121,8 +131,73 @@ func run(args []string) error {
 		return nil
 
 	case "compare":
-		fmt.Println("compare")
+		compareCmd := flag.NewFlagSet("compare", flag.ExitOnError)
+		events := compareCmd.String(
+			"events",
+			"",
+			"path to events file",
+		)
+		queryFile := compareCmd.String(
+			"query",
+			"",
+			"path to query file",
+		)
+		out := compareCmd.String(
+			"out",
+			"",
+			"path to output file",
+		)
+		if err := compareCmd.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *events == "" {
+			return errors.New("compare: --events is required")
+		}
+		if *queryFile == "" {
+			return errors.New("compare: --query is required")
+		}
+		if *out == "" {
+			return errors.New("compare: --out is required")
+		}
 
+		eventsData, err := reader.ReadEvents(*events)
+		if err != nil {
+			return err
+		}
+
+		q, err := query.ReadQuery(*queryFile)
+		if err != nil {
+			return err
+		}
+		scanIDs, err := scan.Execute(eventsData, &q)
+		if err != nil {
+			return err
+		}
+		idx := index.NewIndex()
+		idx.Build(eventsData)
+		idx.Sort()
+
+		indexIDs, err := idx.Execute(&q)
+		if err != nil {
+			return err
+		}
+		equal := slices.Equal(scanIDs, indexIDs)
+		report := fmt.Sprintf(
+			"# Compare report\n\n"+
+				"- Events: %d\n"+
+				"- Scan matched: %d\n"+
+				"- Index matched: %d\n"+
+				"- Results equal: %t\n",
+			len(eventsData),
+			len(scanIDs),
+			len(indexIDs),
+			equal,
+		)
+		if err := os.WriteFile(*out, []byte(report), 0644); err != nil {
+			return err
+		}
+
+		return nil
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 

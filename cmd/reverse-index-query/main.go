@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"project_cat_reverse/internal/generator"
 	"project_cat_reverse/internal/index"
 	"project_cat_reverse/internal/query"
 	"project_cat_reverse/internal/reader"
@@ -33,7 +34,35 @@ func run(args []string) error {
 	switch args[0] {
 
 	case "generate":
-		fmt.Println("generate")
+		generateCmd := flag.NewFlagSet("generate", flag.ContinueOnError)
+		count := generateCmd.Int(
+			"count",
+			0,
+			"number of events to generate",
+		)
+		out := generateCmd.String(
+			"out",
+			"",
+			"path to output file",
+		)
+		seed := generateCmd.Int64(
+			"seed",
+			0,
+			"random seed",
+		)
+
+		if err := generateCmd.Parse(args[1:]); err != nil {
+			return err
+		}
+		if *count < 1 {
+			return errors.New("count must be positive")
+		}
+		if *out == "" {
+			return errors.New("output file is required")
+		}
+		if err := generator.GenerateToFile(*count, *out, *seed); err != nil {
+			return err
+		}
 
 	case "run":
 		runCmd := flag.NewFlagSet("run", flag.ExitOnError)

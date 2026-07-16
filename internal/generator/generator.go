@@ -2,6 +2,7 @@ package generator
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -16,21 +17,20 @@ var fileExtensions = []string{"docx", "xlsx", "pdf", "zip", "go", "sql"}
 var destinationTypes = []string{"none", "internal", "external", "usb", "cloud", "printer"}
 var severities = []string{"low", "medium", "high", "critical"}
 
-func GenerateEvent(id uint64) event.Event {
-	department := departments[rand.Intn(len(departments))]
-	action := actions[rand.Intn(len(actions))]
-	channel := channels[rand.Intn(len(channels))]
+func GenerateEvent(id uint64, rng *rand.Rand, baseTime time.Time) event.Event {
+	department := departments[rng.Intn(len(departments))]
+	action := actions[rng.Intn(len(actions))]
+	channel := channels[rng.Intn(len(channels))]
 
-	fileExt := fileExtensions[rand.Intn(len(fileExtensions))]
-	destinationType := destinationTypes[rand.Intn(len(destinationTypes))]
-	severity := severities[rand.Intn(len(severities))]
+	fileExt := fileExtensions[rng.Intn(len(fileExtensions))]
+	destinationType := destinationTypes[rng.Intn(len(destinationTypes))]
+	severity := severities[rng.Intn(len(severities))]
 
-	userNumber := rand.Intn(5000) + 1
+	userNumber := rng.Intn(5000) + 1
 	userID := fmt.Sprintf("user_%04d", userNumber)
 
-	currentTime := time.Now().UTC()
-	randomHours := rand.Intn(721)
-	randomTime := currentTime.Add(-time.Duration(randomHours) * time.Hour)
+	randomHours := rng.Intn(721)
+	randomTime := baseTime.Add(-time.Duration(randomHours) * time.Hour)
 	timestamp := randomTime.Format(time.RFC3339)
 
 	return event.Event{
@@ -45,15 +45,24 @@ func GenerateEvent(id uint64) event.Event {
 		Timestamp:       timestamp,
 	}
 }
-func GenerateToFile(count int, fileName string) error {
+func GenerateToFile(count int, fileName string, seed int64) error {
+	if count < 1 {
+		return errors.New("count must be positive")
+	}
+	if fileName == "" {
+		return errors.New("output file is required")
+	}
 	file, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+	rng := rand.New(rand.NewSource(seed))
+	baseTime := time.Now().UTC()
+
 	for i := 1; i <= count; i++ {
 
-		evt := GenerateEvent(uint64(i))
+		evt := GenerateEvent(uint64(i), rng, baseTime)
 
 		data, err := json.Marshal(evt)
 		if err != nil {

@@ -12,7 +12,6 @@ func ReadEvents(fileName string) ([]event.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	var events []event.Event
 
@@ -30,5 +29,14 @@ func ReadEvents(fileName string) ([]event.Event, error) {
 		}
 		events = append(events, read)
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := file.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	return events, nil
 }

@@ -45,7 +45,7 @@ func GenerateEvent(id uint64, rng *rand.Rand, baseTime time.Time) event.Event {
 		Timestamp:       timestamp,
 	}
 }
-func GenerateToFile(count int, fileName string, seed int64) error {
+func GenerateToFile(count int, fileName string, seed int64) (err error) {
 	if count < 1 {
 		return errors.New("count must be positive")
 	}
@@ -56,7 +56,12 @@ func GenerateToFile(count int, fileName string, seed int64) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		closeErr := file.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	rng := rand.New(rand.NewSource(seed))
 	baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).
 		Add(time.Duration(seed%8760) * time.Hour)

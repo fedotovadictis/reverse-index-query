@@ -58,7 +58,8 @@ func GenerateToFile(count int, fileName string, seed int64) error {
 	}
 	defer file.Close()
 	rng := rand.New(rand.NewSource(seed))
-	baseTime := time.Now().UTC()
+	baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).
+		Add(time.Duration(seed%8760) * time.Hour)
 
 	for i := 1; i <= count; i++ {
 

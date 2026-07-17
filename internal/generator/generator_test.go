@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,4 +32,30 @@ func TestGenerateToFileCreatesFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+func TestGenerateToFileSameSeedProducesSameOutput(t *testing.T) {
+	tempDir := t.TempDir()
+	fileName1 := filepath.Join(tempDir, "events1.jsonl")
+	fileName2 := filepath.Join(tempDir, "events2.jsonl")
+	err := GenerateToFile(3, fileName1, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = GenerateToFile(3, fileName2, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data1, err := os.ReadFile(fileName1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data2, err := os.ReadFile(fileName2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(data1, data2) {
+		t.Fatal("GenerateToFile produced different output for the same seed")
+	}
+
 }

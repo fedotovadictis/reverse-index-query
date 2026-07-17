@@ -106,12 +106,26 @@ function Invoke-CheckCommand {
     $started = Get-Date
 
     $runner = @"
-`$ErrorActionPreference = 'Continue'
+`$ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath '$($WorkingDirectory.Replace("'", "''"))'
-$Command
-`$exitCode = `$global:LASTEXITCODE
-if (`$null -eq `$exitCode) { `$exitCode = 0 }
-exit `$exitCode
+try {
+    `$global:LASTEXITCODE = `$null
+    `$Error.Clear()
+    $Command
+    `$success = `$?
+    `$exitCode = `$global:LASTEXITCODE
+    if (`$null -eq `$exitCode) {
+        if (`$success -and `$Error.Count -eq 0) {
+            `$exitCode = 0
+        } else {
+            `$exitCode = 1
+        }
+    }
+    exit `$exitCode
+} catch {
+    Write-Error `$_
+    exit 1
+}
 "@
 
     Set-Content -LiteralPath $runnerPath -Value $runner -Encoding UTF8
@@ -297,11 +311,17 @@ function Add-StandardEngineeringAssessments {
     if ($Ctx.CommandResults.ContainsKey('go_test_all')) {
         Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.go_test_passes' -Level 'engineering' -Category 'tests' -Requirement 'go test ./... passes' -CommandName 'go_test_all'
     }
-    if ($Ctx.CommandResults.ContainsKey('go_test_bench')) {
-        Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.benchmarks_run' -Level 'engineering' -Category 'benchmarks' -Requirement 'Benchmark tests run' -CommandName 'go_test_bench'
-    }
     if ($Ctx.CommandResults.ContainsKey('go_test_race')) {
         Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.race_test_passes' -Level 'engineering' -Category 'tests' -Requirement 'go test -race ./... passes' -CommandName 'go_test_race'
+    }
+    if ($Ctx.CommandResults.ContainsKey('make_test')) {
+        Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.make_test_runs' -Level 'engineering' -Category 'reproducibility' -Requirement 'make test passes' -CommandName 'make_test'
+    }
+    if ($Ctx.CommandResults.ContainsKey('make_bench')) {
+        Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.make_bench_runs' -Level 'engineering' -Category 'reproducibility' -Requirement 'make bench passes' -CommandName 'make_bench'
+    }
+    if ($Ctx.CommandResults.ContainsKey('make_demo')) {
+        Add-CommandFeatureAssessment -Ctx $Ctx -Id 'engineering.make_demo_runs' -Level 'engineering' -Category 'reproducibility' -Requirement 'make demo passes' -CommandName 'make_demo'
     }
 
     $readmePath = Join-Path $Ctx.RepoRoot 'README.md'
@@ -437,7 +457,6 @@ $queryPath = Write-CheckText -Ctx $ctx -RelativePath 'inputs/query.json' -Conten
 '@
 
 Invoke-CheckCommand -Ctx $ctx -Name 'go_test_all' -Command "& '$($ctx.GoCmd)' test ./..."
-Invoke-CheckCommand -Ctx $ctx -Name 'go_test_bench' -Command "& '$($ctx.GoCmd)' test -bench=. ./..."
 
 if (Test-Path -LiteralPath (Join-Path $ctx.RepoRoot 'Makefile')) {
     Invoke-CheckCommand -Ctx $ctx -Name 'make_test' -Command 'make test'
@@ -493,10 +512,10 @@ Add-SourceFeatureAssessment -Ctx $ctx -Id 'minimum.query_tree' -Level 'minimum' 
 Add-BooleanFeatureAssessment -Ctx $ctx -Id 'minimum.scan_equals_index' -Level 'minimum' -Category 'correctness' -Requirement 'Scan and index return same IDs' -Implemented ($comparison.scan_exists -and $comparison.index_exists) -Conformant ([bool]$comparison.matched_ids_equal) -Evidence @('outputs/scan.json','outputs/index.json','outputs/scan_index_comparison.json')
 Add-SourceFeatureAssessment -Ctx $ctx -Id 'minimum.list_tests' -Level 'minimum' -Category 'tests' -Requirement 'Intersect and union unit tests exist' -Patterns @('Test.*Intersect','Test.*Union|Test.*Or') -Match 'all'
 
-Add-CommandFeatureAssessment -Ctx $ctx -Id 'good.million_events' -Level 'good' -Category 'performance' -Requirement 'Large event generation mode exists' -CommandName 'cli_generate' -RequiredArtifacts @($generated) -Details 'Small harness dataset is used; full load needs separate confirmation'
+Add-SourceFeatureAssessment -Ctx $ctx -Id 'good.million_events' -Level 'good' -Category 'performance' -Requirement '1,000,000 events mode or benchmark exists' -Patterns @('1000000|1_000_000|1 000 000','Benchmark|bench|generate') -Match 'all'
 Add-CommandFeatureAssessment -Ctx $ctx -Id 'good.markdown_compare' -Level 'good' -Category 'report' -Requirement 'compare Markdown report' -CommandName 'cli_compare' -RequiredArtifacts @($compare)
 Add-SourceFeatureAssessment -Ctx $ctx -Id 'good.index_build_duration' -Level 'good' -Category 'performance' -Requirement 'Index build duration is measured' -Patterns @('duration_ms|DurationMS','Build.*Duration|build.*time') -Match 'all'
-Add-CommandFeatureAssessment -Ctx $ctx -Id 'good.benchmarks' -Level 'good' -Category 'performance' -Requirement 'Query benchmarks run' -CommandName 'go_test_bench'
+Add-CommandFeatureAssessment -Ctx $ctx -Id 'good.benchmarks' -Level 'good' -Category 'performance' -Requirement 'make bench runs query benchmarks' -CommandName 'make_bench'
 
 Add-SourceFeatureAssessment -Ctx $ctx -Id 'excellent.string_query' -Level 'excellent' -Category 'query' -Requirement 'String query language' -Patterns @('Parse.*Query','AND|OR','strings\.Fields|token') -Match 'all'
 Add-SourceFeatureAssessment -Ctx $ctx -Id 'excellent.intersection_order' -Level 'excellent' -Category 'algorithm' -Requirement 'Intersection order optimized by list length' -Patterns @('sort\.Slice','len\(') -Match 'all'

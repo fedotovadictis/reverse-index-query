@@ -1,5 +1,0 @@
-{
-  "op": "TERM",
-  "field": "department",
-  "value": "sales"
-}

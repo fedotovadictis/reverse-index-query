@@ -1,0 +1,14 @@
+
+{
+  "op": "AND",
+  "left": {
+    "op": "TERM",
+    "field": "department",
+    "value": "dev"
+  },
+  "right": {
+    "op": "TERM",
+    "field": "file_ext",
+    "value": "pdf"
+  }
+}

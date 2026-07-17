@@ -2,7 +2,7 @@
 
 ## Description
 
-This project implements a simplified inverted index for security events. It generates event data, builds an inverted index for selected fields, executes boolean queries (TERM, AND, OR), and compares the results with a full scan.
+This project implements a simplified inverted index for events. It generates event data, builds an inverted index for selected fields, executes boolean queries (TERM, AND, OR), and compares the results with a full scan.
 
 ## Requirements
 
@@ -52,6 +52,17 @@ Execute a query using the inverted index.
   --query query.json `
   --method index `
   --out index.json
+```
+
+## Compare scan and index
+
+Compare the results of the scan-based and index-based execution.
+
+```powershell
+.\reverse-index-query.exe compare `
+  --events events.jsonl `
+  --query query.json `
+  --out compare_report.md
 ```
 
 ## Input format
@@ -134,13 +145,57 @@ Example:
 2. Build an inverted index for indexed fields.
 3. Parse the query into a tree.
 4. Execute the query using either:
-    - full scan;
-    - inverted index.
+   - full scan;
+   - inverted index.
 5. Return matching event IDs and execution statistics.
+
+## Benchmark results
+
+Benchmarks were executed using:
+
+```powershell
+go test ./internal/index -bench="."
+```
+
+Results:
+
+| Benchmark | Result |
+|-----------|--------:|
+| BenchmarkIntersect | 233323 ns/op |
+| BenchmarkUnion | 868554 ns/op |
+
+Test environment:
+
+- OS: Windows
+- Architecture: amd64
+- CPU: 13th Gen Intel(R) Core(TM) i5-13400F
+
+## Control dataset
+
+A deterministic control dataset is provided in `testdata/control`.
+
+Query:
+
+```text
+department = dev AND file_ext = pdf
+```
+
+Expected result:
+
+- matched_count = 2
+- matched_ids = [9, 20]
+
+Comparison report:
+
+- Scan matched: 2
+- Index matched: 2
+- Results equal: true
 
 ## Current limitations
 
 - Only JSON query trees are supported.
 - Supported operators are TERM, AND and OR.
 - NOT queries are not implemented.
-- The optional `compare` command is not implemented yet.
+- Only exact value matching is supported.
+- The inverted index is built entirely in memory.
+- Range and wildcard queries are not supported.

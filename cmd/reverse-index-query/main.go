@@ -31,6 +31,9 @@ func main() {
 }
 
 func run(args []string) error {
+	if len(args) == 0 {
+		return errors.New("command is required: generate, run or compare")
+	}
 	switch args[0] {
 
 	case "generate":
@@ -65,7 +68,7 @@ func run(args []string) error {
 		}
 
 	case "run":
-		runCmd := flag.NewFlagSet("run", flag.ExitOnError)
+		runCmd := flag.NewFlagSet("run", flag.ContinueOnError)
 		events := runCmd.String(
 			"events",
 			"",
@@ -119,22 +122,30 @@ func run(args []string) error {
 
 		var ids []uint64
 		var durationMS float64
+		var indexBuildDurationMS float64
 
 		if *method == "scan" {
 			start := time.Now()
+
 			ids, err = scan.Execute(eventsData, &q)
+
 			durationMS = float64(time.Since(start)) / float64(time.Millisecond)
 
 		} else {
+			buildStart := time.Now()
+
 			idx.Build(eventsData)
 			idx.Sort()
+
+			indexBuildDurationMS =
+				float64(time.Since(buildStart)) / float64(time.Millisecond)
 
 			start := time.Now()
 
 			ids, err = idx.Execute(&q)
 
-			durationMS = float64(time.Since(start)) / float64(time.Millisecond)
-
+			durationMS =
+				float64(time.Since(start)) / float64(time.Millisecond)
 		}
 
 		if err != nil {
@@ -142,11 +153,12 @@ func run(args []string) error {
 		}
 
 		res := result.Result{
-			Method:       *method,
-			MatchedCount: len(ids),
-			MatchedIDs:   ids,
-			Truncated:    false,
-			DurationMS:   durationMS,
+			Method:               *method,
+			MatchedCount:         len(ids),
+			MatchedIDs:           ids,
+			Truncated:            false,
+			DurationMS:           durationMS,
+			IndexBuildDurationMS: indexBuildDurationMS,
 		}
 
 		data, err := json.MarshalIndent(res, "", "  ")
@@ -160,7 +172,7 @@ func run(args []string) error {
 		return nil
 
 	case "compare":
-		compareCmd := flag.NewFlagSet("compare", flag.ExitOnError)
+		compareCmd := flag.NewFlagSet("compare", flag.ContinueOnError)
 		events := compareCmd.String(
 			"events",
 			"",

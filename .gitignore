@@ -1,0 +1,26 @@
+# IDE
+.idea/
+*.iml
+
+# Build
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Coverage
+*.out
+coverage.out
+
+# Check results
+.check-results/
+
+# Generated binary
+reverse-index-query
+
+# Large generated dataset
+testdata/large/

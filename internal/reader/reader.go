@@ -3,40 +3,49 @@ package reader
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"project_cat_reverse/internal/event"
+	"strings"
 )
 
-func ReadEvents(fileName string) ([]event.Event, error) {
+func ReadEvents(fileName string) (events []event.Event, err error) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open events file: %w", err)
 	}
 
-	var events []event.Event
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		// здесь обрабатываем одну строку
-		line := scanner.Text()
-
-		var read event.Event
-
-		err := json.Unmarshal([]byte(line), &read)
-		if err != nil {
-			return nil, err
-		}
-		events = append(events, read)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
 	defer func() {
 		closeErr := file.Close()
-		if err == nil {
-			err = closeErr
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("close events file: %w", closeErr)
 		}
 	}()
+
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+
+	for scanner.Scan() {
+		lineNumber++
+
+		line := scanner.Text()
+		line = strings.TrimPrefix(line, "\uFEFF")
+
+		var read event.Event
+		if unmarshalErr := json.Unmarshal([]byte(line), &read); unmarshalErr != nil {
+			return nil, fmt.Errorf(
+				"decode event on line %d: %w",
+				lineNumber,
+				unmarshalErr,
+			)
+		}
+
+		events = append(events, read)
+	}
+
+	if scanErr := scanner.Err(); scanErr != nil {
+		return nil, fmt.Errorf("read events file: %w", scanErr)
+	}
+
 	return events, nil
 }

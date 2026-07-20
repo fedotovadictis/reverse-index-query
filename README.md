@@ -131,13 +131,19 @@ Example:
 
 ```json
 {
-  "method": "index",
-  "matched_count": 1422,
-  "matched_ids": [1, 7, 29, 44],
-  "truncated": true,
-  "duration_ms": 3.1
+   "method": "index",
+   "matched_count": 1422,
+   "matched_ids": [1, 7, 29, 44],
+   "truncated": true,
+   "duration_ms": 3.1,
+   "index_build_duration_ms": 12.8
 }
 ```
+
+Where:
+
+- `duration_ms` – query execution time.
+- `index_build_duration_ms` – time required to build and sort the inverted index (only for the `index` method).
 
 ## Algorithm
 
@@ -169,6 +175,31 @@ Test environment:
 - OS: Windows
 - Architecture: amd64
 - CPU: 13th Gen Intel(R) Core(TM) i5-13400F
+
+## Large dataset scenario
+
+The project includes a reproducible performance scenario for a dataset of **1,000,000 events**.
+
+Run:
+
+```powershell
+make large-demo
+```
+
+This command performs the following steps:
+
+1. Generates 1,000,000 deterministic events using a fixed seed.
+2. Executes the query using the `scan` method.
+3. Executes the same query using the `index` method.
+4. Compares the results of both methods.
+
+Generated files are stored in:
+
+```text
+testdata/large/
+```
+
+The comparison report confirms that both search methods produce identical results.
 
 ## Control dataset
 

@@ -1,6 +1,7 @@
 package query
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,17 +23,18 @@ type Query struct {
 }
 
 func ReadQuery(fileName string) (Query, error) {
-	file, err := os.Open(fileName)
+	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return Query{}, err
 	}
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	q := Query{}
-	err = decoder.Decode(&q)
-	if err != nil {
-		return q, err
+
+	data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
+
+	var q Query
+	if err := json.Unmarshal(data, &q); err != nil {
+		return Query{}, err
 	}
+
 	return q, nil
 }
 func (q *Query) Validate() error {

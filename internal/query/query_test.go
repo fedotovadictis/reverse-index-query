@@ -1,6 +1,10 @@
 package query
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
@@ -121,5 +125,26 @@ func TestValidateNilQuery(t *testing.T) {
 	err := q.Validate()
 	if err == nil {
 		t.Error("expected error, got nil")
+	}
+}
+func TestReadQueryWithBOM(t *testing.T) {
+	content := append(
+		[]byte{0xEF, 0xBB, 0xBF},
+		[]byte(`{"op":"TERM","field":"department","value":"dev"}`)...,
+	)
+
+	fileName := filepath.Join(t.TempDir(), "query.json")
+
+	if err := os.WriteFile(fileName, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	q, err := ReadQuery(fileName)
+	if err != nil {
+		t.Fatalf("ReadQuery returned error: %v", err)
+	}
+
+	if q.Op != Term || q.Field != "department" || q.Value != "dev" {
+		t.Fatalf("unexpected query: %+v", q)
 	}
 }

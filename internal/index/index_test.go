@@ -74,6 +74,44 @@ func TestIntersect(t *testing.T) {
 	}
 }
 
+func TestAndWithDifferentPostingListSizes(t *testing.T) {
+	idx := NewIndex()
+
+	idx.AddEvent(event.Event{
+		ID:         1,
+		Department: "sales",
+		Channel:    "email",
+	})
+	idx.AddEvent(event.Event{
+		ID:         2,
+		Department: "sales",
+		Channel:    "web",
+	})
+	idx.AddEvent(event.Event{
+		ID:         3,
+		Department: "sales",
+		Channel:    "web",
+	})
+	idx.AddEvent(event.Event{
+		ID:         4,
+		Department: "sales",
+		Channel:    "web",
+	})
+
+	got := idx.And(
+		"department",
+		"sales",
+		"channel",
+		"email",
+	)
+
+	expected := []uint64{1}
+
+	if !slices.Equal(got, expected) {
+		t.Errorf("And() = %v, want %v", got, expected)
+	}
+}
+
 func TestUnion(t *testing.T) {
 	tests := []struct {
 		name     string

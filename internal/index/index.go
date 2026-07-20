@@ -96,6 +96,12 @@ func (idx *Index) And(
 ) []uint64 {
 	leftIDs := idx.Find(leftField, leftValue)
 	rightIDs := idx.Find(rightField, rightValue)
+
+	// Intersect the shorter posting list first.
+	if len(leftIDs) > len(rightIDs) {
+		leftIDs, rightIDs = rightIDs, leftIDs
+	}
+
 	return Intersect(leftIDs, rightIDs)
 }
 

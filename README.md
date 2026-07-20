@@ -193,6 +193,36 @@ Disadvantages:
 
 For a single query over a small dataset, `scan` may be simpler and faster because it avoids index construction. For many queries over the same large dataset, `index` is generally more efficient because the build cost is reused.
 
+### Intersection order
+
+For `AND` queries, the implementation starts the intersection with the shorter posting list.
+
+The current implementation intersects two sorted posting lists in `O(n + m)` time. Choosing the shorter list first is a simple optimization and provides a good foundation for extending the query engine to more complex multi-term intersections.
+
+### Index memory estimate
+
+Each posting list stores event IDs as `uint64` values.
+
+Each `uint64` occupies 8 bytes.
+
+One event may contribute up to seven posting entries because the index contains seven searchable fields.
+
+Therefore, the lower-bound memory estimate for posting-list IDs is:
+
+```text
+number of posting entries × 8 bytes
+```
+
+For one million fully populated events:
+
+```text
+7 × 1,000,000 × 8 bytes ≈ 56 MB
+```
+
+This estimate includes only posting-list event IDs.
+
+It does not include Go map overhead, slice headers, string storage, unused slice capacity, or runtime metadata, so the actual memory usage is higher.
+        
 ## Benchmark results
 
 Benchmarks were executed using:

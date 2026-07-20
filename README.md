@@ -155,6 +155,44 @@ Where:
    - inverted index.
 5. Return matching event IDs and execution statistics.
 
+## Scan and index trade-offs
+
+The `scan` and `index` methods produce the same query results, but they have different performance characteristics.
+
+### Scan
+
+The scan method checks every event against the query.
+
+Advantages:
+
+- does not require additional index construction;
+- uses less additional memory;
+- is suitable for small datasets;
+- is useful when only one query needs to be executed.
+
+Disadvantages:
+
+- query execution time grows with the number of events;
+- repeated queries require scanning the full dataset again.
+
+### Index
+
+The index method builds posting lists that map field values to event IDs.
+
+Advantages:
+
+- repeated queries are usually faster after the index has been built;
+- TERM queries can directly access matching posting lists;
+- AND and OR queries operate on sorted event ID lists instead of scanning every event.
+
+Disadvantages:
+
+- building and sorting the index takes additional time;
+- the index requires additional memory;
+- rebuilding the index may be necessary when the dataset changes.
+
+For a single query over a small dataset, `scan` may be simpler and faster because it avoids index construction. For many queries over the same large dataset, `index` is generally more efficient because the build cost is reused.
+
 ## Benchmark results
 
 Benchmarks were executed using:

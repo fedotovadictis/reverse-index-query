@@ -123,6 +123,7 @@ func run(args []string) error {
 		var ids []uint64
 		var durationMS float64
 		var indexBuildDurationMS float64
+		var indexMemoryEstimateBytes uint64
 
 		if *method == "scan" {
 			start := time.Now()
@@ -140,6 +141,8 @@ func run(args []string) error {
 			indexBuildDurationMS =
 				float64(time.Since(buildStart)) / float64(time.Millisecond)
 
+			indexMemoryEstimateBytes = idx.MemoryEstimateBytes()
+
 			start := time.Now()
 
 			ids, err = idx.Execute(&q)
@@ -153,12 +156,13 @@ func run(args []string) error {
 		}
 
 		res := result.Result{
-			Method:               *method,
-			MatchedCount:         len(ids),
-			MatchedIDs:           ids,
-			Truncated:            false,
-			DurationMS:           durationMS,
-			IndexBuildDurationMS: indexBuildDurationMS,
+			Method:                   *method,
+			MatchedCount:             len(ids),
+			MatchedIDs:               ids,
+			Truncated:                false,
+			DurationMS:               durationMS,
+			IndexBuildDurationMS:     indexBuildDurationMS,
+			IndexMemoryEstimateBytes: indexMemoryEstimateBytes,
 		}
 
 		data, err := json.MarshalIndent(res, "", "  ")
@@ -210,29 +214,52 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
+
+		scanStart := time.Now()
 		scanIDs, err := scan.Execute(eventsData, &q)
+		scanDurationMS := float64(time.Since(scanStart)) / float64(time.Millisecond)
 		if err != nil {
 			return err
 		}
+
 		idx := index.NewIndex()
+		indexBuildStart := time.Now()
 		idx.Build(eventsData)
 		idx.Sort()
+		indexBuildDurationMS := float64(time.Since(indexBuildStart)) / float64(time.Millisecond)
 
+		indexQueryStart := time.Now()
 		indexIDs, err := idx.Execute(&q)
+		indexQueryDurationMS := float64(time.Since(indexQueryStart)) / float64(time.Millisecond)
 		if err != nil {
 			return err
 		}
+		indexTotalDurationMS := indexBuildDurationMS + indexQueryDurationMS
+		indexMemoryEstimateBytes := idx.MemoryEstimateBytes()
+		indexMemoryEstimateMiB := float64(indexMemoryEstimateBytes) / (1024 * 1024)
+
 		equal := slices.Equal(scanIDs, indexIDs)
 		report := fmt.Sprintf(
 			"# Compare report\n\n"+
 				"- Events: %d\n"+
 				"- Scan matched: %d\n"+
 				"- Index matched: %d\n"+
-				"- Results equal: %t\n",
+				"- Results equal: %t\n"+
+				"- Scan duration: %.4f ms\n"+
+				"- Index build duration: %.4f ms\n"+
+				"- Index query duration: %.4f ms\n"+
+				"- Index total duration: %.4f ms\n"+
+				"- Index memory estimate: %d bytes (%.2f MiB)\n",
 			len(eventsData),
 			len(scanIDs),
 			len(indexIDs),
 			equal,
+			scanDurationMS,
+			indexBuildDurationMS,
+			indexQueryDurationMS,
+			indexTotalDurationMS,
+			indexMemoryEstimateBytes,
+			indexMemoryEstimateMiB,
 		)
 		if err := os.WriteFile(*out, []byte(report), 0644); err != nil {
 			return err

@@ -58,6 +58,18 @@ func (idx *Index) Sort() {
 	}
 }
 
+func (idx *Index) MemoryEstimateBytes() uint64 {
+	var postingEntries uint64
+
+	for _, values := range idx.Fields {
+		for _, ids := range values {
+			postingEntries += uint64(len(ids))
+		}
+	}
+
+	return postingEntries * 8
+}
+
 func (idx *Index) Find(field string, value string) []uint64 {
 	fieldMap, ok := idx.Fields[field]
 	if !ok {

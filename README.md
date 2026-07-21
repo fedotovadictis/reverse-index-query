@@ -136,7 +136,8 @@ Example:
    "matched_ids": [1, 7, 29, 44],
    "truncated": true,
    "duration_ms": 3.1,
-   "index_build_duration_ms": 12.8
+   "index_build_duration_ms": 12.8,
+   "index_memory_estimate_bytes": 56000000
 }
 ```
 
@@ -144,6 +145,7 @@ Where:
 
 - `duration_ms` – query execution time.
 - `index_build_duration_ms` – time required to build and sort the inverted index (only for the `index` method).
+- `index_memory_estimate_bytes` – estimated memory occupied by posting-list IDs in the inverted index.
 
 ## Algorithm
 
@@ -268,6 +270,28 @@ testdata/large/
 ```
 
 The comparison report confirms that both search methods produce identical results.
+
+Example compare report:
+
+```powershell
+make large-demo
+```
+
+```text
+# Compare report
+
+- Events: 1000000
+- Scan matched: 27765
+- Index matched: 27765
+- Results equal: true
+- Scan duration: 20.8141 ms
+- Index build duration: 393.6062 ms
+- Index query duration: 1.0001 ms
+- Index total duration: 394.6063 ms
+- Index memory estimate: 56000000 bytes (53.41 MiB)
+```
+
+The exact execution times depend on the hardware and Go runtime version, while the result counts and memory estimate remain deterministic for the provided dataset and seed.
 
 ## Control dataset
 

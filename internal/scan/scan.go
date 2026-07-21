@@ -7,6 +7,10 @@ import (
 )
 
 func Execute(events []event.Event, q *query.Query) ([]uint64, error) {
+	if err := q.Validate(); err != nil {
+		return nil, err
+	}
+
 	var ids []uint64
 	for _, evt := range events {
 		ok, err := match(evt, q)
@@ -20,10 +24,8 @@ func Execute(events []event.Event, q *query.Query) ([]uint64, error) {
 	}
 	return ids, nil
 }
+
 func match(evt event.Event, q *query.Query) (bool, error) {
-	if err := q.Validate(); err != nil {
-		return false, err
-	}
 	switch q.Op {
 	case query.Term:
 		switch q.Field {

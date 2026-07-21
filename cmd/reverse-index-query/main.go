@@ -79,6 +79,11 @@ func run(args []string) error {
 			"",
 			"path to query file",
 		)
+		queryString := runCmd.String(
+			"query-string",
+			"",
+			"query expression",
+		)
 		method := runCmd.String(
 			"method",
 			"",
@@ -95,9 +100,6 @@ func run(args []string) error {
 		if *events == "" {
 			return errors.New("run: --events is required")
 		}
-		if *queryFile == "" {
-			return errors.New("run: --query is required")
-		}
 		if *method == "" {
 			return errors.New("run: --method is required")
 		}
@@ -107,6 +109,12 @@ func run(args []string) error {
 		if *out == "" {
 			return errors.New("run: --out is required")
 		}
+		if *queryFile == "" && *queryString == "" {
+			return errors.New("run: either --query or --query-string is required")
+		}
+		if *queryFile != "" && *queryString != "" {
+			return errors.New("run: use only one of --query or --query-string")
+		}
 
 		eventsData, err := reader.ReadEvents(*events)
 		if err != nil {
@@ -115,7 +123,14 @@ func run(args []string) error {
 
 		idx := index.NewIndex()
 
-		q, err := query.ReadQuery(*queryFile)
+		var q query.Query
+
+		if *queryFile != "" {
+			q, err = query.ReadQuery(*queryFile)
+		} else {
+			q, err = query.ParseString(*queryString)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -187,6 +202,11 @@ func run(args []string) error {
 			"",
 			"path to query file",
 		)
+		queryString := compareCmd.String(
+			"query-string",
+			"",
+			"query expression",
+		)
 		out := compareCmd.String(
 			"out",
 			"",
@@ -198,8 +218,11 @@ func run(args []string) error {
 		if *events == "" {
 			return errors.New("compare: --events is required")
 		}
-		if *queryFile == "" {
-			return errors.New("compare: --query is required")
+		if *queryFile == "" && *queryString == "" {
+			return errors.New("compare: either --query or --query-string is required")
+		}
+		if *queryFile != "" && *queryString != "" {
+			return errors.New("compare: use only one of --query or --query-string")
 		}
 		if *out == "" {
 			return errors.New("compare: --out is required")
@@ -210,7 +233,14 @@ func run(args []string) error {
 			return err
 		}
 
-		q, err := query.ReadQuery(*queryFile)
+		var q query.Query
+
+		if *queryFile != "" {
+			q, err = query.ReadQuery(*queryFile)
+		} else {
+			q, err = query.ParseString(*queryString)
+		}
+
 		if err != nil {
 			return err
 		}

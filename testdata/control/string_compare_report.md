@@ -1,8 +1,8 @@
 # Compare report
 
 - Events: 20
-- Scan matched: 2
-- Index matched: 2
+- Scan matched: 7
+- Index matched: 7
 - Results equal: true
 - Scan duration: 0.0000 ms
 - Index build duration: 0.0000 ms

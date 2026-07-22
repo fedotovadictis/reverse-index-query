@@ -1,0 +1,10 @@
+{
+  "method": "scan",
+  "matched_count": 2,
+  "matched_ids": [
+    9,
+    20
+  ],
+  "truncated": false,
+  "duration_ms": 0
+}

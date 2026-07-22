@@ -16,6 +16,25 @@ import (
 	"time"
 )
 
+const maxMatchedIDs = 1000
+
+func limitMatchedIDs(ids []uint64, limit int) ([]uint64, bool) {
+	if limit < 0 {
+		limit = 0
+	}
+
+	truncated := len(ids) > limit
+
+	if truncated {
+		ids = ids[:limit]
+	}
+
+	resultIDs := make([]uint64, len(ids))
+	copy(resultIDs, ids)
+
+	return resultIDs, truncated
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "command is required: generate, run or compare")
@@ -170,11 +189,14 @@ func run(args []string) error {
 			return err
 		}
 
+		matchedCount := len(ids)
+		limitedIDs, truncated := limitMatchedIDs(ids, maxMatchedIDs)
+
 		res := result.Result{
 			Method:                   *method,
-			MatchedCount:             len(ids),
-			MatchedIDs:               ids,
-			Truncated:                false,
+			MatchedCount:             matchedCount,
+			MatchedIDs:               limitedIDs,
+			Truncated:                truncated,
 			DurationMS:               durationMS,
 			IndexBuildDurationMS:     indexBuildDurationMS,
 			IndexMemoryEstimateBytes: indexMemoryEstimateBytes,

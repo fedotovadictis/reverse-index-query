@@ -29,6 +29,9 @@ func ParseString(input string) (Query, error) {
 	if input == "" {
 		return Query{}, errors.New("query string is empty")
 	}
+	if err := validateBoundaryOperators(input); err != nil {
+		return Query{}, err
+	}
 	q, err := parseOr(input)
 	if err != nil {
 		return Query{}, err
@@ -244,4 +247,28 @@ func validateParentheses(input string) error {
 	}
 
 	return nil
+}
+func validateBoundaryOperators(input string) error {
+	fields := strings.Fields(input)
+	if len(fields) == 0 {
+		return nil
+	}
+
+	first := strings.Trim(fields[0], "()")
+	last := strings.Trim(fields[len(fields)-1], "()")
+
+	if isLogicalOperator(first) {
+		return fmt.Errorf("query cannot start with operator %s", first)
+	}
+
+	if isLogicalOperator(last) {
+		return fmt.Errorf("expected expression after %s", last)
+	}
+
+	return nil
+}
+
+func isLogicalOperator(value string) bool {
+	return strings.EqualFold(value, "AND") ||
+		strings.EqualFold(value, "OR")
 }

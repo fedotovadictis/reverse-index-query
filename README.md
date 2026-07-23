@@ -54,6 +54,40 @@ Execute a query using the inverted index.
   --out index.json
 ```
 
+## Run query from command line
+
+A query can also be passed directly using `--query-string`.
+
+### Scan
+
+```powershell
+.\reverse-index-query.exe run `
+  --events events.jsonl `
+  --query-string "department=sales AND (file_ext=pdf OR channel=email)" `
+  --method scan `
+  --out scan.json
+```
+
+### Index
+
+```powershell
+.\reverse-index-query.exe run `
+  --events events.jsonl `
+  --query-string "department=sales AND (file_ext=pdf OR channel=email)" `
+  --method index `
+  --out index.json
+```
+
+The string query language supports:
+
+- `AND`
+- `OR`
+- parentheses
+- `AND` precedence over `OR`
+- case-insensitive logical operators
+
+Exactly one of `--query` and `--query-string` must be provided.
+
 ## Compare scan and index
 
 Compare the results of the scan-based and index-based execution.
@@ -147,6 +181,14 @@ Where:
 - `index_build_duration_ms` – time required to build and sort the inverted index (only for the `index` method).
 - `index_memory_estimate_bytes` – estimated memory occupied by posting-list IDs in the inverted index.
 
+### Result limit
+
+The result contains at most 1000 IDs in `matched_ids`.
+
+- `matched_count` contains the full number of matching events.
+- `matched_ids` contains no more than the first 1000 IDs.
+- `truncated` is `true` when `matched_count` is greater than 1000.
+
 ## Algorithm
 
 1. Read events from a JSONL file.
@@ -197,9 +239,11 @@ For a single query over a small dataset, `scan` may be simpler and faster becaus
 
 ### Intersection order
 
-For `AND` queries, the implementation starts the intersection with the shorter posting list.
+For `AND` queries, nested AND expressions are flattened into a collection of terms.
 
-The current implementation intersects two sorted posting lists in `O(n + m)` time. Choosing the shorter list first is a simple optimization and provides a good foundation for extending the query engine to more complex multi-term intersections.
+The index executor obtains the posting list for every term, sorts the posting lists by length, and starts intersection with the shortest posting lists.
+
+Each intersection of two sorted posting lists takes `O(n + m)` time. Starting with the shortest posting lists reduces the size of intermediate results and minimizes unnecessary comparisons.
 
 ### Index memory estimate
 
@@ -224,7 +268,39 @@ For one million fully populated events:
 This estimate includes only posting-list event IDs.
 
 It does not include Go map overhead, slice headers, string storage, unused slice capacity, or runtime metadata, so the actual memory usage is higher.
-        
+
+## Verification
+
+Format the source code:
+
+```powershell
+gofmt -w .
+```
+
+Run all tests:
+
+```powershell
+go test ./...
+```
+
+Run static analysis:
+
+```powershell
+go vet ./...
+```
+
+Build the CLI:
+
+```powershell
+go build -o reverse-index-query.exe ./cmd/reverse-index-query
+```
+
+After committing all changes, the repository should be in the following state:
+
+```text
+nothing to commit, working tree clean
+```
+
 ## Benchmark results
 
 Benchmarks were executed using:
@@ -268,14 +344,18 @@ Generated files are stored in:
 ```text
 testdata/large/
 ```
+Expected generated artifacts:
+
+```text
+events.jsonl
+scan.json
+index.json
+compare_report.md
+```
 
 The comparison report confirms that both search methods produce identical results.
 
 Example compare report:
-
-```powershell
-make large-demo
-```
 
 ```text
 # Compare report
@@ -316,7 +396,7 @@ Comparison report:
 
 ## Current limitations
 
-- Only JSON query trees are supported.
+- Queries can be provided as JSON trees or through `--query-string`.
 - Supported operators are TERM, AND and OR.
 - NOT queries are not implemented.
 - Only exact value matching is supported.

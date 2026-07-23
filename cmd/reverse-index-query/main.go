@@ -296,12 +296,16 @@ func run(args []string) error {
 		indexMemoryEstimateMiB := float64(indexMemoryEstimateBytes) / (1024 * 1024)
 
 		equal := slices.Equal(scanIDs, indexIDs)
+		onlyScan := difference(scanIDs, indexIDs)
+		onlyIndex := difference(indexIDs, scanIDs)
 		report := fmt.Sprintf(
 			"# Compare report\n\n"+
 				"- Events: %d\n"+
 				"- Scan matched: %d\n"+
 				"- Index matched: %d\n"+
 				"- Results equal: %t\n"+
+				"- Only in scan: %v\n"+
+				"- Only in index: %v\n"+
 				"- Scan duration: %.4f ms\n"+
 				"- Index build duration: %.4f ms\n"+
 				"- Index query duration: %.4f ms\n"+
@@ -311,6 +315,8 @@ func run(args []string) error {
 			len(scanIDs),
 			len(indexIDs),
 			equal,
+			onlyScan,
+			onlyIndex,
 			scanDurationMS,
 			indexBuildDurationMS,
 			indexQueryDurationMS,
@@ -322,10 +328,39 @@ func run(args []string) error {
 			return err
 		}
 
+		if !equal {
+			return errors.New("scan and index results differ")
+		}
+
 		return nil
 	default:
 		return fmt.Errorf("unknown command: %s", args[0])
 
 	}
 	return nil
+}
+func difference(left, right []uint64) []uint64 {
+	var diff []uint64
+
+	i := 0
+	j := 0
+
+	for i < len(left) && j < len(right) {
+		switch {
+		case left[i] == right[j]:
+			i++
+			j++
+
+		case left[i] < right[j]:
+			diff = append(diff, left[i])
+			i++
+
+		default:
+			j++
+		}
+	}
+
+	diff = append(diff, left[i:]...)
+
+	return diff
 }

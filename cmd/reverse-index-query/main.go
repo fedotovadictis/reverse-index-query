@@ -36,6 +36,7 @@ func limitMatchedIDs(ids []uint64, limit int) ([]uint64, bool) {
 }
 
 func main() {
+
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "command is required: generate, run or compare")
 		os.Exit(1)
@@ -44,6 +45,10 @@ func main() {
 	// если дошли сюда, значит команда есть
 	err := run(os.Args[1:])
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return
+		}
+
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

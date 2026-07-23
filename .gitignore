@@ -20,7 +20,7 @@ coverage.out
 .check-results/
 
 # Generated binary
-reverse-index-query
+/reverse-index-query
 
 # Large generated dataset
 testdata/large/

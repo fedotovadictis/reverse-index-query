@@ -201,3 +201,33 @@ func TestOr(t *testing.T) {
 		t.Errorf("Or() = %v, want %v", got, expected)
 	}
 }
+func TestBuildClearsPreviousState(t *testing.T) {
+	idx := NewIndex()
+
+	idx.Build([]event.Event{
+		{
+			ID:         1,
+			Department: "sales",
+		},
+	})
+
+	idx.Build([]event.Event{
+		{
+			ID:         2,
+			Department: "it",
+		},
+	})
+
+	got := idx.Find("department", "sales")
+	if len(got) != 0 {
+		t.Fatalf("old data remained in index: %v", got)
+	}
+
+	got = idx.Find("department", "it")
+
+	want := []uint64{2}
+
+	if !slices.Equal(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}

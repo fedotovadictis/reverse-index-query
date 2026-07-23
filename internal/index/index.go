@@ -42,11 +42,13 @@ func (idx *Index) AddEvent(evt event.Event) {
 }
 
 func (idx *Index) Build(events []event.Event) {
+	idx.Fields = make(map[string]map[string][]uint64)
+
 	for _, evt := range events {
 		idx.AddEvent(evt)
 	}
-
 }
+
 func (idx *Index) Sort() {
 	for _, values := range idx.Fields {
 		for value, ids := range values {

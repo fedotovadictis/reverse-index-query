@@ -2,9 +2,8 @@ package index
 
 import (
 	"fmt"
-	"sort"
-
 	"project_cat_reverse/internal/query"
+	"sort"
 )
 
 func (idx *Index) Execute(q *query.Query) ([]uint64, error) {
@@ -61,9 +60,7 @@ func (idx *Index) executeAnd(q *query.Query) ([]uint64, error) {
 		results = append(results, ids)
 	}
 
-	sort.SliceStable(results, func(i, j int) bool {
-		return len(results[i]) < len(results[j])
-	})
+	sortPostingListsByLength(results)
 
 	matchedIDs := append([]uint64(nil), results[0]...)
 
@@ -95,4 +92,9 @@ func collectAndOperands(q *query.Query, operands *[]*query.Query) {
 	}
 
 	*operands = append(*operands, q)
+}
+func sortPostingListsByLength(postingLists [][]uint64) {
+	sort.SliceStable(postingLists, func(i, j int) bool {
+		return len(postingLists[i]) < len(postingLists[j])
+	})
 }

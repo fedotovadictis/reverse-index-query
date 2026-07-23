@@ -131,3 +131,24 @@ func TestExecuteOr(t *testing.T) {
 		t.Errorf("Execute() = %v, want %v", got, expected)
 	}
 }
+func TestSortPostingListsByLength(t *testing.T) {
+	postingLists := [][]uint64{
+		{1, 2, 3, 4, 5},
+		{10},
+		{20, 21, 22},
+		{30, 31},
+	}
+
+	sortPostingListsByLength(postingLists)
+
+	gotLengths := make([]int, len(postingLists))
+	for i, ids := range postingLists {
+		gotLengths[i] = len(ids)
+	}
+
+	wantLengths := []int{1, 2, 3, 5}
+
+	if !slices.Equal(gotLengths, wantLengths) {
+		t.Fatalf("posting list lengths = %v, want %v", gotLengths, wantLengths)
+	}
+}

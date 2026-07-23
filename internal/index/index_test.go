@@ -231,3 +231,32 @@ func TestBuildClearsPreviousState(t *testing.T) {
 		t.Fatalf("got %v, want %v", got, want)
 	}
 }
+func TestSortRemovesDuplicateIDs(t *testing.T) {
+	idx := NewIndex()
+
+	idx.AddEvent(event.Event{
+		ID:         7,
+		Department: "sales",
+	})
+	idx.AddEvent(event.Event{
+		ID:         3,
+		Department: "sales",
+	})
+	idx.AddEvent(event.Event{
+		ID:         7,
+		Department: "sales",
+	})
+	idx.AddEvent(event.Event{
+		ID:         3,
+		Department: "sales",
+	})
+
+	idx.Sort()
+
+	got := idx.Find("department", "sales")
+	want := []uint64{3, 7}
+
+	if !slices.Equal(got, want) {
+		t.Fatalf("Find() = %v, want %v", got, want)
+	}
+}

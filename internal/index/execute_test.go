@@ -2,6 +2,7 @@ package index
 
 import (
 	"project_cat_reverse/internal/event"
+	"project_cat_reverse/internal/scan"
 	"slices"
 	"testing"
 
@@ -150,5 +151,110 @@ func TestSortPostingListsByLength(t *testing.T) {
 
 	if !slices.Equal(gotLengths, wantLengths) {
 		t.Fatalf("posting list lengths = %v, want %v", gotLengths, wantLengths)
+	}
+}
+func TestScanAndIndexParityOnNonStandardData(t *testing.T) {
+	tests := []struct {
+		name   string
+		events []event.Event
+		query  *query.Query
+		want   []uint64
+	}{
+		{
+			name: "unsorted input",
+			events: []event.Event{
+				{ID: 30, Department: "sales"},
+				{ID: 10, Department: "sales"},
+				{ID: 20, Department: "hr"},
+				{ID: 5, Department: "sales"},
+			},
+			query: &query.Query{
+				Op:    query.Term,
+				Field: "department",
+				Value: "sales",
+			},
+			want: []uint64{5, 10, 30},
+		},
+		{
+			name: "duplicate ids",
+			events: []event.Event{
+				{ID: 7, Department: "sales"},
+				{ID: 3, Department: "sales"},
+				{ID: 7, Department: "sales"},
+				{ID: 3, Department: "sales"},
+			},
+			query: &query.Query{
+				Op:    query.Term,
+				Field: "department",
+				Value: "sales",
+			},
+			want: []uint64{3, 7},
+		},
+		{
+			name: "empty result",
+			events: []event.Event{
+				{ID: 2, Department: "sales"},
+				{ID: 1, Department: "hr"},
+			},
+			query: &query.Query{
+				Op:    query.Term,
+				Field: "department",
+				Value: "dev",
+			},
+			want: []uint64{},
+		},
+		{
+			name: "or with duplicate ids",
+			events: []event.Event{
+				{ID: 4, Department: "sales", Channel: "email"},
+				{ID: 2, Department: "sales", Channel: "local"},
+				{ID: 4, Department: "sales", Channel: "email"},
+				{ID: 1, Department: "hr", Channel: "email"},
+			},
+			query: &query.Query{
+				Op: query.Or,
+				Left: &query.Query{
+					Op:    query.Term,
+					Field: "department",
+					Value: "sales",
+				},
+				Right: &query.Query{
+					Op:    query.Term,
+					Field: "channel",
+					Value: "email",
+				},
+			},
+			want: []uint64{1, 2, 4},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scanIDs, err := scan.Execute(tt.events, tt.query)
+			if err != nil {
+				t.Fatalf("scan.Execute() returned error: %v", err)
+			}
+
+			idx := NewIndex()
+			idx.Build(tt.events)
+			idx.Sort()
+
+			indexIDs, err := idx.Execute(tt.query)
+			if err != nil {
+				t.Fatalf("index.Execute() returned error: %v", err)
+			}
+
+			if !slices.Equal(scanIDs, indexIDs) {
+				t.Fatalf(
+					"scan and index differ:\nscan:  %v\nindex: %v",
+					scanIDs,
+					indexIDs,
+				)
+			}
+
+			if !slices.Equal(scanIDs, tt.want) {
+				t.Fatalf("result = %v, want %v", scanIDs, tt.want)
+			}
+		})
 	}
 }

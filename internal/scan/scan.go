@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"project_cat_reverse/internal/event"
 	"project_cat_reverse/internal/query"
+	"sort"
 )
 
 func Execute(events []event.Event, q *query.Query) ([]uint64, error) {
@@ -22,7 +23,7 @@ func Execute(events []event.Event, q *query.Query) ([]uint64, error) {
 		}
 
 	}
-	return ids, nil
+	return normalizeIDs(ids), nil
 }
 
 func match(evt event.Event, q *query.Query) (bool, error) {
@@ -75,4 +76,24 @@ func match(evt event.Event, q *query.Query) (bool, error) {
 	}
 
 	return false, fmt.Errorf("unknown operator: %s", q.Op)
+}
+func normalizeIDs(ids []uint64) []uint64 {
+	if len(ids) == 0 {
+		return []uint64{}
+	}
+
+	sort.Slice(ids, func(i, j int) bool {
+		return ids[i] < ids[j]
+	})
+
+	result := make([]uint64, 0, len(ids))
+	result = append(result, ids[0])
+
+	for _, id := range ids[1:] {
+		if id != result[len(result)-1] {
+			result = append(result, id)
+		}
+	}
+
+	return result
 }

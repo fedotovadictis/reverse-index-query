@@ -47,6 +47,7 @@ func (idx *Index) Build(events []event.Event) {
 	for _, evt := range events {
 		idx.AddEvent(evt)
 	}
+	idx.Sort()
 }
 
 func (idx *Index) Sort() {

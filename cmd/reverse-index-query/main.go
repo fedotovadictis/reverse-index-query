@@ -175,7 +175,6 @@ func run(args []string) error {
 			buildStart := time.Now()
 
 			idx.Build(eventsData)
-			idx.Sort()
 
 			indexBuildDurationMS =
 				float64(time.Since(buildStart)) / float64(time.Millisecond)
@@ -282,7 +281,6 @@ func run(args []string) error {
 		idx := index.NewIndex()
 		indexBuildStart := time.Now()
 		idx.Build(eventsData)
-		idx.Sort()
 		indexBuildDurationMS := float64(time.Since(indexBuildStart)) / float64(time.Millisecond)
 
 		indexQueryStart := time.Now()

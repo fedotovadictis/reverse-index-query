@@ -328,3 +328,171 @@ func readResultFile(t *testing.T, path string) result.Result {
 
 	return got
 }
+func TestRunSerializesEmptyMatchedIDsAsArray(t *testing.T) {
+	methods := []string{"scan", "index"}
+
+	for _, method := range methods {
+		t.Run(method, func(t *testing.T) {
+			tempDir := t.TempDir()
+
+			eventsPath := filepath.Join(tempDir, "events.jsonl")
+			outputPath := filepath.Join(tempDir, "result.json")
+
+			eventsData := `{"id":1,"department":"sales"}` + "\n"
+
+			if err := os.WriteFile(eventsPath, []byte(eventsData), 0644); err != nil {
+				t.Fatalf("write events file: %v", err)
+			}
+
+			err := run([]string{
+				"run",
+				"--events", eventsPath,
+				"--query-string", "department=dev",
+				"--method", method,
+				"--out", outputPath,
+			})
+			if err != nil {
+				t.Fatalf("run returned error: %v", err)
+			}
+
+			data, err := os.ReadFile(outputPath)
+			if err != nil {
+				t.Fatalf("read result file: %v", err)
+			}
+
+			var raw map[string]json.RawMessage
+			if err := json.Unmarshal(data, &raw); err != nil {
+				t.Fatalf("decode result: %v", err)
+			}
+
+			matchedIDs, ok := raw["matched_ids"]
+			if !ok {
+				t.Fatal("result does not contain matched_ids")
+			}
+
+			if string(matchedIDs) != "[]" {
+				t.Fatalf("matched_ids = %s, want []", matchedIDs)
+			}
+		})
+	}
+}
+func TestRunScanAndIndexParityWithShuffledDuplicatesAndLimit(t *testing.T) {
+	const uniqueMatches = 1200
+
+	events := make([]event.Event, 0, uniqueMatches+200)
+
+	// Добавляем совпадающие события в обратном порядке,
+	// чтобы входной JSONL был несортированным.
+	for id := uniqueMatches; id >= 1; id-- {
+		events = append(events, event.Event{
+			ID:         uint64(id),
+			Department: "sales",
+		})
+	}
+
+	// Добавляем повторяющиеся ID.
+	for id := 1; id <= 200; id++ {
+		events = append(events, event.Event{
+			ID:         uint64(id),
+			Department: "sales",
+		})
+	}
+
+	eventsPath := writeEventsFile(t, events)
+
+	results := make(map[string]result.Result)
+
+	for _, method := range []string{"scan", "index"} {
+		outputPath := filepath.Join(t.TempDir(), method+".json")
+
+		err := run([]string{
+			"run",
+			"--events", eventsPath,
+			"--query-string", "department=sales",
+			"--method", method,
+			"--out", outputPath,
+		})
+		if err != nil {
+			t.Fatalf("%s run returned error: %v", method, err)
+		}
+
+		results[method] = readResultFile(t, outputPath)
+	}
+
+	scanResult := results["scan"]
+	indexResult := results["index"]
+
+	if scanResult.MatchedCount != uniqueMatches {
+		t.Fatalf(
+			"scan matched_count = %d, want %d",
+			scanResult.MatchedCount,
+			uniqueMatches,
+		)
+	}
+
+	if indexResult.MatchedCount != uniqueMatches {
+		t.Fatalf(
+			"index matched_count = %d, want %d",
+			indexResult.MatchedCount,
+			uniqueMatches,
+		)
+	}
+
+	if scanResult.MatchedCount != indexResult.MatchedCount {
+		t.Fatalf(
+			"matched_count differs: scan=%d, index=%d",
+			scanResult.MatchedCount,
+			indexResult.MatchedCount,
+		)
+	}
+
+	if !scanResult.Truncated {
+		t.Fatal("scan truncated = false, want true")
+	}
+
+	if !indexResult.Truncated {
+		t.Fatal("index truncated = false, want true")
+	}
+
+	if scanResult.Truncated != indexResult.Truncated {
+		t.Fatalf(
+			"truncated differs: scan=%v, index=%v",
+			scanResult.Truncated,
+			indexResult.Truncated,
+		)
+	}
+
+	if len(scanResult.MatchedIDs) != maxMatchedIDs {
+		t.Fatalf(
+			"len(scan matched_ids) = %d, want %d",
+			len(scanResult.MatchedIDs),
+			maxMatchedIDs,
+		)
+	}
+
+	if len(indexResult.MatchedIDs) != maxMatchedIDs {
+		t.Fatalf(
+			"len(index matched_ids) = %d, want %d",
+			len(indexResult.MatchedIDs),
+			maxMatchedIDs,
+		)
+	}
+
+	if !reflect.DeepEqual(scanResult.MatchedIDs, indexResult.MatchedIDs) {
+		t.Fatalf(
+			"matched_ids differ:\nscan=%v\nindex=%v",
+			scanResult.MatchedIDs,
+			indexResult.MatchedIDs,
+		)
+	}
+
+	wantIDs := makeIDs(maxMatchedIDs)
+
+	if !reflect.DeepEqual(scanResult.MatchedIDs, wantIDs) {
+		t.Fatalf(
+			"matched_ids = %v, want sorted prefix %v",
+			scanResult.MatchedIDs,
+			wantIDs,
+		)
+	}
+}

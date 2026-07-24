@@ -44,7 +44,11 @@ func ReadEvents(fileName string) (events []event.Event, err error) {
 	}
 
 	if scanErr := scanner.Err(); scanErr != nil {
-		return nil, fmt.Errorf("read events file: %w", scanErr)
+		return nil, fmt.Errorf(
+			"read event on line %d: %w",
+			lineNumber+1,
+			scanErr,
+		)
 	}
 
 	return events, nil

@@ -12,7 +12,7 @@ import (
 	"project_cat_reverse/internal/result"
 )
 
-func TestLimitMatchedIDsBoundaries(t *testing.T) {
+func TestLimitIDsBoundaries(t *testing.T) {
 	tests := []struct {
 		name          string
 		count         int
@@ -49,7 +49,7 @@ func TestLimitMatchedIDsBoundaries(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ids := makeIDs(tt.count)
 
-			got, truncated := limitMatchedIDs(ids, maxMatchedIDs)
+			got, truncated := limitIDs(ids, maxMatchedIDs)
 
 			if truncated != tt.wantTruncated {
 				t.Fatalf(
@@ -75,11 +75,11 @@ func TestLimitMatchedIDsBoundaries(t *testing.T) {
 	}
 }
 
-func TestLimitMatchedIDsDoesNotModifyInput(t *testing.T) {
+func TestLimitIDsDoesNotModifyInput(t *testing.T) {
 	ids := []uint64{1, 2, 3, 4}
 	original := append([]uint64(nil), ids...)
 
-	_, _ = limitMatchedIDs(ids, 2)
+	_, _ = limitIDs(ids, 2)
 
 	if !reflect.DeepEqual(ids, original) {
 		t.Fatalf("input changed: got %v, want %v", ids, original)

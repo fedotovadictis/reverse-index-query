@@ -16,9 +16,12 @@ import (
 	"time"
 )
 
-const maxMatchedIDs = 1000
+const (
+	maxMatchedIDs  = 1000
+	maxMismatchIDs = 100
+)
 
-func limitMatchedIDs(ids []uint64, limit int) ([]uint64, bool) {
+func limitIDs(ids []uint64, limit int) ([]uint64, bool) {
 	if limit < 0 {
 		limit = 0
 	}
@@ -194,7 +197,7 @@ func run(args []string) error {
 		}
 
 		matchedCount := len(ids)
-		limitedIDs, truncated := limitMatchedIDs(ids, maxMatchedIDs)
+		limitedIDs, truncated := limitIDs(ids, maxMatchedIDs)
 
 		res := result.Result{
 			Method:                   *method,
@@ -296,14 +299,20 @@ func run(args []string) error {
 		equal := slices.Equal(scanIDs, indexIDs)
 		onlyScan := difference(scanIDs, indexIDs)
 		onlyIndex := difference(indexIDs, scanIDs)
+		limitedOnlyScan, onlyScanTruncated := limitIDs(onlyScan, maxMismatchIDs)
+		limitedOnlyIndex, onlyIndexTruncated := limitIDs(onlyIndex, maxMismatchIDs)
 		report := fmt.Sprintf(
 			"# Compare report\n\n"+
 				"- Events: %d\n"+
 				"- Scan matched: %d\n"+
 				"- Index matched: %d\n"+
 				"- Results equal: %t\n"+
-				"- Only in scan: %v\n"+
-				"- Only in index: %v\n"+
+				"- Only in scan count: %d\n"+
+				"- Only in scan IDs: %v\n"+
+				"- Only in scan truncated: %t\n"+
+				"- Only in index count: %d\n"+
+				"- Only in index IDs: %v\n"+
+				"- Only in index truncated: %t\n"+
 				"- Scan duration: %.4f ms\n"+
 				"- Index build duration: %.4f ms\n"+
 				"- Index query duration: %.4f ms\n"+
@@ -313,8 +322,12 @@ func run(args []string) error {
 			len(scanIDs),
 			len(indexIDs),
 			equal,
-			onlyScan,
-			onlyIndex,
+			len(onlyScan),
+			limitedOnlyScan,
+			onlyScanTruncated,
+			len(onlyIndex),
+			limitedOnlyIndex,
+			onlyIndexTruncated,
 			scanDurationMS,
 			indexBuildDurationMS,
 			indexQueryDurationMS,

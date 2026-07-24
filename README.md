@@ -189,6 +189,18 @@ The result contains at most 1000 IDs in `matched_ids`.
 - `matched_ids` contains no more than the first 1000 IDs.
 - `truncated` is `true` when `matched_count` is greater than 1000.
 
+### Duplicate IDs
+
+Query results are treated as a set of event IDs.
+
+If multiple input events have the same `id`, the final result:
+
+- contains this ID only once;
+- is sorted in ascending order;
+- is identical for both the `scan` and `index` methods.
+
+Duplicate removal is performed before applying the 1000-ID output limit.
+
 ## Algorithm
 
 1. Read events from a JSONL file.
@@ -339,17 +351,20 @@ This command performs the following steps:
 3. Executes the same query using the `index` method.
 4. Compares the results of both methods.
 
+The scenario uses the query from `testdata/control/query.json`. The query produces a non-empty result on the generated dataset, so the comparison validates parity between `scan` and `index` on thousands of matching events.
+
 Generated files are stored in:
 
 ```text
 testdata/large/
 ```
+```md
 Expected generated artifacts:
 
 ```text
-events.jsonl
-scan.json
-index.json
+events_1000000.jsonl
+scan_result.json
+index_result.json
 compare_report.md
 ```
 

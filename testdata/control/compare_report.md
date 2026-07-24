@@ -4,6 +4,8 @@
 - Scan matched: 2
 - Index matched: 2
 - Results equal: true
+- Only in scan: []
+- Only in index: []
 - Scan duration: 0.0000 ms
 - Index build duration: 0.0000 ms
 - Index query duration: 0.0000 ms

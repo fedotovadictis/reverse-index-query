@@ -260,3 +260,35 @@ func TestSortRemovesDuplicateIDs(t *testing.T) {
 		t.Fatalf("Find() = %v, want %v", got, want)
 	}
 }
+func TestExecuteDeduplicatesMatchingIDs(t *testing.T) {
+	idx := NewIndex()
+
+	events := []event.Event{
+		{
+			ID:         5,
+			Department: "sales",
+		},
+		{
+			ID:         5,
+			Department: "sales",
+		},
+		{
+			ID:         3,
+			Department: "sales",
+		},
+		{
+			ID:         3,
+			Department: "sales",
+		},
+	}
+
+	idx.Build(events)
+	idx.Sort()
+
+	got := idx.Find("department", "sales")
+	want := []uint64{3, 5}
+
+	if !slices.Equal(got, want) {
+		t.Fatalf("Find() = %v, want %v", got, want)
+	}
+}

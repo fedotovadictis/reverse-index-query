@@ -91,7 +91,7 @@ func run(args []string) error {
 			return errors.New("output file is required")
 		}
 		if err := generator.GenerateToFile(*count, *out, *seed); err != nil {
-			return err
+			return fmt.Errorf("generate: write events to %q: %w", *out, err)
 		}
 
 	case "run":
@@ -215,7 +215,7 @@ func run(args []string) error {
 		}
 
 		if err := os.WriteFile(*out, data, 0644); err != nil {
-			return err
+			return fmt.Errorf("run: write result to %q: %w", *out, err)
 		}
 		return nil
 
@@ -336,7 +336,7 @@ func run(args []string) error {
 			indexMemoryEstimateMiB,
 		)
 		if err := os.WriteFile(*out, []byte(report), 0644); err != nil {
-			return err
+			return fmt.Errorf("compare: write report to %q: %w", *out, err)
 		}
 
 		if !equal {

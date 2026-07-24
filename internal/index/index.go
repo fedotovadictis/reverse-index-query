@@ -2,6 +2,7 @@ package index
 
 import (
 	"project_cat_reverse/internal/event"
+	"project_cat_reverse/internal/idset"
 	"sort"
 )
 
@@ -57,26 +58,9 @@ func (idx *Index) Sort() {
 				return ids[i] < ids[j]
 			})
 
-			values[value] = uniqueSortedIDs(ids)
+			values[value] = idset.UniqueSorted(ids)
 		}
 	}
-}
-
-func uniqueSortedIDs(ids []uint64) []uint64 {
-	if len(ids) == 0 {
-		return []uint64{}
-	}
-
-	result := make([]uint64, 0, len(ids))
-	result = append(result, ids[0])
-
-	for _, id := range ids[1:] {
-		if id != result[len(result)-1] {
-			result = append(result, id)
-		}
-	}
-
-	return result
 }
 
 func (idx *Index) MemoryEstimateBytes() uint64 {
